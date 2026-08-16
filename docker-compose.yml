@@ -1,0 +1,38 @@
+services:
+  llm-trainer:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile.backend
+    command: python train_lora.py
+    volumes:
+      # Mount lora_adapter so trained weights persist on your host PC
+      - .:/app
+      # Cache Hugging Face models on host so you don't redownload them
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    # Enable GPU support in Docker (Optional: requires NVIDIA Container Toolkit)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+  llm-backend:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile.backend
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_NAME=Qwen/Qwen2.5-0.5B-Instruct
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+
+  llm-frontend:
+    build:
+      context: .
+      dockerfile: ./frontend/Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - llm-backend
